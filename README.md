@@ -46,3 +46,17 @@ apos maquina reiniciar, com o wine instalem o setup_pdv e copiem os arquivos que
 acredito que seja isso, qualquer duvida entrem em contato, comentem e me ajudem a corrigir erros (no texto tb)
 
 tudo de bom!
+
+--
+
+alguns detalhes extras:
+
+configuramos para detectar automaticamente a impressora e o pinpad usb no boot, impressora com1 e pinpad com2
+esse ajuste inclusive modifica o arquivo local.ini (cuidem para estar minusculo o nome do arquivo, podem acontecer alguns problemas case senstive com os scripts rodando diretamente do linux)
+as portas seriais normais contar a partir da porta 3, no caso, com1 da maquina utilizamos com3 no wine
+
+o horario esta configurado para ser automatico
+
+174 e 175 funcionando (para isso utilizamos um wrapper shell no sudo, porque o wine consegue usar assim para chamar o sudo init 0 e 6 que o programa utiliza)
+
+foram feitos varios ajustes, acho que o mais importante foi comentado
