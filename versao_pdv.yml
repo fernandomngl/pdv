@@ -1,0 +1,14 @@
+---
+- hosts: pdv
+  gather_facts: False
+  tasks:
+          - name: Verifica versao PDV
+            shell: cat .wine/drive_c/pdv/local.ini | grep -i versaoPDV
+            register: pdv_info
+          - debug:
+              var: pdv_info.stdout_lines
+          - name: Verifica versao Distrib. Linux
+            shell: lsb_release -a 2>&1 | grep Desc | cut -f2
+            register: distro_info
+          - debug:
+              var: distro_info.stdout_lines

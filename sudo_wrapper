@@ -1,0 +1,15 @@
+#!/bin/sh
+if [ "$1" = "init" ]
+	then
+		if [ "$2" = "0" ]
+		then
+			( sudo poweroff )
+		
+		elif [ "$2" = "6" ]
+		then
+			( sudo reboot )
+		fi
+else 
+	( /usr/bin/sudobkp $@ )
+fi
+exit

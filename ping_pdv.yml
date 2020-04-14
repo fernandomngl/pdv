@@ -1,0 +1,5 @@
+---
+- hosts: pdv
+  gather_facts: false
+  tasks:
+          - ping:
