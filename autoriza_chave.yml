@@ -1,0 +1,16 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: cria diretorio do ssh
+      file:
+        path: "~/.ssh/"
+        state: directory
+    - name: cria arquivo vazio
+      file:
+        path: "~/.ssh/authorized_keys"
+        state: touch
+    - name: autoriza chave publica do ssh
+      lineinfile:
+        path: "~/.ssh/authorized_keys"
+        line: "{{ chave }}"
