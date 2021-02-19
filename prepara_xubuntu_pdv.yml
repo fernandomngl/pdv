@@ -1,0 +1,372 @@
+- hosts: staging_pdv
+  become: yes
+  become_method: sudo
+  gather_facts: no
+  
+  vars_prompt:
+  - name: ansible_become_pass
+    prompt: "[Configuração Playbook] Senha para instalar dos hosts"
+    private: yes
+  - name: vnc_password
+    prompt: "[Configuração Vino] Qual a senha do VNC para o PDV?"
+    private: yes
+  - name: user_password
+    prompt: "senha do usuario pdv?"
+    private: yes
+
+  tasks:
+   - name: Reajuste caso neces. do sudo wrapper para original (importante, Ansible espera resposta pelo PID)
+     become: yes
+     become_method: su
+     become_user: "{{ansible_user}}"
+     ignore_errors: true
+     shell: 
+           echo "{{ ansible_become_pass }}" | sudobkp -S su -c 'rm /usr/bin/sudo && mv /usr/bin/sudobkp /usr/bin/sudo && chmod 4755 /usr/bin/sudo' 
+           
+   - name: Cria usuario pdv
+     become: yes
+     become_user: root
+     ignore_errors: true
+     shell: 
+           sudo useradd -p $(openssl passwd -crypt {{ user_password }}) -m -s $(which bash) pdv
+           
+
+   - name: Gathering facts
+     setup:
+
+   - name: Instalando acl 
+     apt: 
+         name: acl
+         state: latest
+   - name: Instalando x2goserver
+     apt: 
+         name: x2goserver
+         state: latest
+   - name: Instalando cifs-utils
+     apt: 
+         name: cifs-utils
+         state: latest
+   - name: Instalando x11vnc
+     apt: 
+         name: x11vnc
+         state: latest
+   - name: Instalando hardinfo  
+     apt: 
+         name: hardinfo 
+         state: latest   
+   - name: Instalando gsmartcontrol
+     apt: 
+         name: gsmartcontrol
+         state: latest
+   - name: Instalando gstreamer1.0-plugins-bad
+     apt: 
+         name: gstreamer1.0-plugins-bad
+         state: latest
+   - name: Instalando gedit
+     apt: 
+         name: gedit
+         state: latest
+   - name: Instalando vim-runtime
+     apt: 
+         name: vim-runtime
+         state: latest     
+   - name: Instalando ctags
+     apt: 
+         name: ctags
+         state: latest
+
+   - name: Instalando build-essential
+     apt: 
+         name: build-essential 
+         state: latest
+   - name: Instalando gcc-doc
+     apt: 
+         name: gcc-doc
+         state: latest
+   - name: Instalando vlc
+     apt: 
+         name: vlc
+         state: latest
+   - name: Instalando vlc-* 
+     apt: 
+         name: vlc-* 
+         state: latest       
+   - name: Instalando galculator
+     apt: 
+         name: galculator
+         state: latest    
+   - name: Instalando xdotool
+     apt: 
+         name: xdotool 
+         state: latest   
+   - name: Instalando htop
+     apt: 
+         name: htop
+         state: latest    
+   - name: Instalando vim 
+     apt: 
+         name: vim
+         state: latest    
+   - name: Instalando ntp
+     apt: 
+         name: ntp
+         state: latest   
+   - name: Instalando numlockx
+     apt: 
+         name: numlockx
+         state: latest  
+   - name: Instalando smartmontools
+     apt: 
+         name: smartmontools 
+         state: latest    
+   - name: Instalando  grabc
+     apt: 
+         name: grabc
+         state: latest  
+   - name: Instalando smbclient 
+     apt: 
+         name: smbclient 
+         state: latest  
+   - name: Instalando wine-stable
+     apt: 
+         name: wine-stable
+         state: latest  
+  
+   - name: Instalando pip
+     apt: 
+         name: python3-pip
+         state: latest  
+
+   - name: Removendo jogo campo minado
+     apt: 
+         name: gnomine
+         state: absent
+
+   - name: Removendo jogo sudoku
+     apt: 
+         name: gnome-sudoku
+         state: absent
+         
+   - name: Removendo jogo minesweeper
+     apt: 
+         name: gnome-mines
+         state: absent
+         
+   - name: Removendo launcher de jogos sgt
+     apt: 
+         name: sgt-launcher
+         state: absent
+   
+   - name: Removendo jogo sgt-puzzles
+     apt: 
+         name: sgt-puzzles
+         state: absent
+
+   - name: Ajustando senha x11vnc
+     become: yes
+     become_user: pdv
+     shell:
+        printf '%s\n' '{{vnc_password}}' '{{vnc_password}}' 'y' | script -q -c 'x11vnc -storepasswd /home/pdv/.passwd' /dev/null
+
+   - name: Configurando fstab para ACL
+     become: yes
+     become_user: root
+     shell: |
+           cp /etc/fstab /etc/fstab_`date +%d%m%H%M%S`
+           sed -i  -E "s/(ext4[[:blank:]]*).*$errors=remount-ro/\1acl,errors=remount-ro/gI" /etc/fstab
+
+   - name: Configurando unattended upgrades para atualizar pacotes sozinho 
+     become: yes
+     become_method: sudo
+     become_user: root
+     shell: |
+           cp /etc/apt/apt.conf.d/50unattended-upgrades /etc/apt/apt.conf.d/50unattended-upgrades_`date +%d%m%H%M%S`
+           sed -i -E "s/\/\/[[:blank:]]*\"\\$\{distro_id\}/\t\"$\{distro_id\}/gI" /etc/apt/apt.conf.d/50unattended-upgrades
+           cp /etc/apt/apt.conf.d/20auto-upgrades /etc/apt/apt.conf.d/20auto-upgrades_`date +%d%m%H%M%S`
+           echo 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
+           sed -i -E "s/(APT::Periodic::Unattended-Upgrade \"1\"\;).*$/\1\nAPT::Periodic::Download-Upgradeable-Packages \"1\"\;\nAPT::Periodic::AutocleanInterval \"7\"\;\n/gI" /etc/apt/apt.conf.d/20auto-upgrades
+
+   - name: Ajustes para corrigir travamentos de reboot (aconteceram em algumas mobos J1800) 
+     become: yes
+     become_method: sudo
+     become_user: root
+     shell: |
+           cp /etc/default/grub /etc/default/grub_`date +%d%m%H%M%S`
+           sed -i -E "s/quiet\ splash//gI" /etc/default/grub
+           update-grub
+
+   - name: Ajustes script inicializa do user
+     become: yes
+     become_user: pdv
+     copy: 
+           src: inicia.sh
+           dest: /home/pdv/
+
+   - name: Ajustes NTP (para estar de acordo com o Sefaz), grupos e autologin
+     become: yes
+     become_method: sudo
+     become_user: root
+     shell: |
+           cp /etc/ntp.conf /etc/ntp.conf_`date +%d%m%H%M%S`
+           sed -i -E "s/0.ubuntu.pool.ntp.org/a.st1.ntp.br/gI" /etc/ntp.conf
+           sed -i -E "s/1.ubuntu.pool.ntp.org/b.st1.ntp.br/gI" /etc/ntp.conf
+           sed -i -E "s/2.ubuntu.pool.ntp.org/a.ntp.br/gI" /etc/ntp.conf
+           sudo sed -i -E "s/3.ubuntu.pool.ntp.org/gps.ntp.br/gI" /etc/ntp.conf
+           adduser pdv dialout
+           adduser pdv dip
+           adduser pdv plugdev 
+           adduser pdv lpadmin
+           adduser pdv sambashare
+           chmod 755 /home/pdv/inicia.sh
+           echo "[SeatDefaults]" > /etc/lightdm/lightdm.conf
+           echo "autologin-guest=false" >> /etc/lightdm/lightdm.conf
+           echo "autologin-user=pdv" >> /etc/lightdm/lightdm.conf
+           echo "autologin-user-timeout=0" >> /etc/lightdm/lightdm.conf
+           echo "autologin-session=lightdm-autologin" >> /etc/lightdm/lightdm.conf
+           chmod 664 /etc/lightdm/lightdm.conf
+
+
+   - name: Ajustes desligamento
+     become: yes
+     become_method: sudo
+     become_user: root
+     lineinfile:
+           path: /etc/crontab
+           line: "50 23 * * * root  /sbin/poweroff"
+
+   - name: Habilita poweroff e reboot para o user (comandos chamados pelo PDV10 para desligar e ligar)
+     become: yes
+     become_method: sudo
+     become_user: root
+     blockinfile: 
+           path: /etc/sudoers
+           block: | 
+              pdv ALL=(ALL) NOPASSWD: /sbin/poweroff
+              pdv ALL=(ALL) NOPASSWD: /sbin/reboot
+
+   - name: Cria diretorio autostart
+     become: yes
+     become_user: pdv
+     file:
+           path: /home/pdv/.config/autostart
+           state: directory
+           owner: "pdv"
+           group: "pdv"
+           mode: 0755
+           recurse: yes
+
+   - name: Cria autoload udev do driver Epson usbserial
+     file:
+           path: /etc/udev/rules.d/99-usbserial.rules
+           state: touch
+           owner: root
+           group: root
+           mode: 0644
+
+   - name: Configura autoload udev Epson usbserial
+     become: yes 
+     become_user: root
+     lineinfile:
+           path: /etc/udev/rules.d/99-usbserial.rules
+           line:
+            'ACTION=="add", ATTRS{idVendor}=="04b8", ATTRS{idProduct}=="0202", RUN+="/sbin/modprobe usbserial vendor=0x04b8 product=0x0202"'
+
+   - name: Cria arquivo pra para iniciar script inicia.sh no autostart
+     become: yes
+     become_user: pdv
+     file:
+           path: /home/pdv/.config/autostart/inicia.sh.desktop
+           state: touch
+           owner: "pdv"
+           group: "pdv"
+           mode: 0755
+
+
+   - name: Configura arquivo autostart
+     become: yes 
+     become_user: pdv
+     blockinfile:
+           path: /home/pdv/.config/autostart/inicia.sh.desktop
+           block: |
+            [Desktop Entry]
+            Type=Application
+            Exec=/home/pdv/inicia.sh
+            Hidden=false
+            NoDisplay=false
+            X-GNOME-Autostart-enabled=true
+            Name=pdvsysmo
+          
+   - name: Ajustes script inicializa do user
+     become: yes
+     become_user: pdv
+     copy: 
+           src: seriais.reg
+           dest: /home/pdv/
+
+
+   - name: Ajustes wine (compatibilidade de dll, config portas seriais e ACL)
+     become: yes
+     become_user: pdv
+     shell: | 
+           WINEARCH=win32 WINEPREFIX="/home/pdv/.wine" winecfg
+           wine regedit /home/pdv/seriais.reg
+           ln -s /dev/serial/by-id/usb-Bematech_MP-4200_TH_Miniprinter-if00 /home/pdv/.wine/dosdevices/com1
+           ln -s /dev/serial/by-id/usb-GERTEC_PPC900_Pinpad_Terminal-if00 /home/pdv/.wine/dosdevices/com2
+           ln -s /dev/ttyS0 /home/pdv/.wine/dosdevices/com3
+           ln -s /dev/ttyS1 /home/pdv/.wine/dosdevices/com4
+           ln -s /dev/ttyS2 /home/pdv/.wine/dosdevices/com5
+           ln -s /dev/ttyS3 /home/pdv/.wine/dosdevices/com6
+           ln -s /dev/ttyS4 /home/pdv/.wine/dosdevices/com7
+           ln -s /dev/ttyS5 /home/pdv/.wine/dosdevices/com8
+           mkdir -p /home/pdv/.wine/drive_c/pdv/
+           mkdir -p /home/pdv/.wine/drive_c/CliSiTef/
+           setfacl -R -m g::rwx -R -m o::rwx -R -m u::rwx /home/pdv/.wine/drive_c/pdv/
+           setfacl -R -d -m g::rwx -R -d -m o::rwx -R -d -m u::rwx /home/pdv/.wine/drive_c/pdv/
+           setfacl -R -m g::rwx -R -m o::rwx -R -m u::rwx /home/pdv/.wine/drive_c/CliSiTef/ 
+           setfacl -R -d -m g::rwx -R -d -m o::rwx -R -d -m u::rwx /home/pdv/.wine/drive_c/CliSiTef/
+
+   - name: Cria link simbolico CliSiTef
+     become: yes
+     become_user: pdv
+     file:
+           src: /home/pdv/.wine/drive_c/CliSiTef
+           dest: /home/pdv/CliSiTef
+           owner: "pdv"
+           group: "pdv"
+           state: link
+
+   - name: Cria link simbolico PDV
+     become: yes
+     become_user: pdv
+     file:
+           src: /home/pdv/.wine/drive_c/pdv
+           dest: /home/pdv/pdv
+           owner: "pdv"
+           group: "pdv"
+           state: link
+
+   - name: Instala sudo wrapper para func desligamentos
+     become: yes
+     become_method: sudo
+     become_user: root
+     copy: 
+           src: sudo_wrapper
+           dest: /usr/bin/
+
+   - name: Ajustes sudo wrapper
+     become: yes
+     become_method: sudo
+     become_user: root
+     shell:  
+           mv /usr/bin/sudo /usr/bin/sudobkp && mv /usr/bin/sudo_wrapper /usr/bin/sudo && chmod 4755 /usr/bin/sudo /usr/bin/sudobkp
+
+   - name: Rebootar o PDV
+     become: yes
+     become_method: su
+     become_user: "root"
+     async: 1
+     poll: 0
+     #ignore_errors: true
+     shell:
+           sleep 5 && reboot
+
