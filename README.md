@@ -15,11 +15,15 @@ nela o ansible precisa estar instalado. Para conectar utilizamos chaves ssh, ger
 Instalar Ubuntu 18.04 LTS ou superior (pode ser config normal, removemos jogos e desnec. nos scripts), anotar o nome de user pois utilizaremos no arquivo hosts/inventario.yml
 Instalar openssh-server python e desabilitar o firewall:
 
-sudo apt update && sudo apt install openssh-server python && sudo ufw disable
+sudo apt update && sudo apt upgrade -y && sudo apt install openssh-server python -y && sudo ufw disable
 
 anotem o ip da maquina caso necessario com o comando ifconfig ou com o comando ip a
 
 -- Procedimento na maquina agente instalador de onde executamos o Ansible:
+
+instalar os programas do ansible e de edição
+
+sudo apt update && sudo apt upgrade -y && sudo apt install ansible vim sshpass -y
 
 gerem uma chave com o comando ssh-keygen (pode ser sem senha mesmo)
 
