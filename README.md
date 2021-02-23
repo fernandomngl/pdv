@@ -23,11 +23,17 @@ anotem o ip da maquina caso necessario com o comando ifconfig ou com o comando i
 
 instalar os programas do ansible e de edição
 
-sudo apt update && sudo apt upgrade -y && sudo apt install ansible vim sshpass -y
+sudo apt update && sudo apt upgrade -y && sudo apt install ansible vim sshpass git -y
+
+git clone https://github.com/fernandomngl/preparador
+
+cd preparador
 
 gerem uma chave com o comando ssh-keygen (pode ser sem senha mesmo)
 
 editem o arquivo inventario.yml na pasta hosts para inserir o ip na secao pdv_staging e modifiquem o ansible_user dele para o user que foi colocado enquanto era instalado e salvem
+
+nano hosts/inventario.yml
 
 rodem da pasta dos scripts o instala_chave_staging.sh
 
